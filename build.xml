@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<project name="Explo" default="all" basedir=".">
+	
+	<description>
+        Build file for the Explo project.
+    </description>
+	<!-- set global properties for this build -->
+	<property name="lib" location="lib"/>
+	<property name="src" location="eval"/>
+	<property name="test" location="test"/>
+	<property name="algo" location="algo"/>
+	<property name="build" location="build"/>
+	<property name="buildEval" location="${build}/eval"/>
+	<property name="buildOthers" location="${build}/others"/>
+	<property name="buildAlgo" location="${build}/algo"/>
+	<property name="buildTest" location="${build}/test"/>
+	<property name="data" location="data"/>
+	<property name="mem" value="1536"/>
+	
+	<target name="init" description="Create build directories">
+		<!-- Create the time stamp -->
+		<tstamp/>
+		<!-- Create the build directory structure used by compile -->
+		<mkdir dir="${build}"/>
+		<mkdir dir="${buildEval}"/>
+		<mkdir dir="${buildOthers}"/>
+		<mkdir dir="${buildAlgo}"/>
+		<mkdir dir="${buildTest}"/>
+	</target>
+	
+	<target name="algo" depends="init" description="Compile and package the click predictor algorithm into a JAR">
+		<delete file="${lib}/ClickPredictor.jar"/>
+		<javac srcdir="${src}/explo/model" destdir="${buildOthers}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
+		<javac srcdir="${src}/explo/util" destdir="${buildOthers}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
+		<!-- Compile the java code from ${algo} into ${buildAlgo} -->
+		<javac srcdir="${algo}" destdir="${buildAlgo}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
+			<!-- Add explo.model and explo.util to the classpath -->
+			<classpath>
+				<pathelement path="${classpath}"/>
+				<pathelement location="${buildOthers}"/>
+				<fileset dir="${lib}">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>
+		</javac>
+		<!-- Put everything in ${buildAlgo} into the ClickPredictor.jar file -->
+		<jar jarfile="${lib}/ClickPredictor.jar" basedir="${buildAlgo}"/>
+	</target>
+	
+	<target name="eval" depends="init" description="Compile the evaluation code">
+		<!-- Compile the java code from ${src} into ${buildEval} -->
+		<javac srcdir="${src}" destdir="${buildEval}" includeantruntime="false" debug="on" debuglevel="lines,vars,source">
+			<!-- Add all JAR files located in lib directory (including ClickPredictor.jar) to classpath -->
+			<classpath>
+				<pathelement path="${classpath}"/>
+				<fileset dir="${lib}">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>
+		</javac>
+		<copy file="${src}/log4j.properties" todir="${buildEval}"/>
+	</target>
+	
+	<target name="main" depends="eval" description="Package the evaluation code into a JAR">
+		<mkdir dir="${build}/jar"/>
+		<jar destfile="${build}/jar/${ant.project.name}.jar" basedir="${buildEval}">
+			<zipfileset includes="**/*.class" src="${lib}/log4j-1.2.16.jar"/>
+			<zipfileset includes="**/*.class" src="${lib}/ClickPredictor.jar"/>
+			<manifest>
+				<attribute name="Main-Class" value="explo.control.Run"/>
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="test" description="Test by running the evaluation for 5 iterations only">
+		<java jar="${build}/jar/${ant.project.name}.jar" fork="true">
+			<arg value="${data}" />
+			<arg value="5" />
+			<jvmarg value="-server"/>
+			<jvmarg value="-Xmx${mem}m"/>
+			<jvmarg value="-Xms${mem}m"/>
+		</java>
+	</target>
+	
+	<target name="jvmtest" depends="init" description="Test the JVM memory limit options">
+		<javac srcdir="${test}/explo/util" destdir="${buildTest}" includeantruntime="false" debug="on" debuglevel="lines,vars,source"/>
+		<java classname="explo.util.JvmTester" fork="true">
+			<classpath>
+				<pathelement path="${classpath}"/>
+				<pathelement location="${buildTest}"/>
+			</classpath>
+			<jvmarg value="-server"/>
+			<jvmarg value="-Xmx${mem}m"/>
+			<jvmarg value="-Xms${mem}m"/>
+		</java>
+	</target>
+	
+	<target name="run" depends="main" description="Run the evaluation on the whole dataset">
+		<delete dir="logs"/>
+		<java jar="${build}/jar/${ant.project.name}.jar" fork="true">
+			<arg value="${data}"/>
+			<jvmarg value="-server"/>
+			<jvmarg value="-Xmx${mem}m"/>
+			<jvmarg value="-Xms${mem}m"/>
+		</java>
+	</target>
+	
+	<target name="clean" description="Clean-up: delete build directories">
+		<delete dir="${build}"/>
+		<delete file="${lib}/ClickPredictor.jar"/>
+		<!--
+		<delete dir="bin"/>
+		<delete dir="logs"/>
+		<delete dir="doc"/>
+		<delete file="cp.ser"/>
+		-->
+	</target>
+	
+	<target name="all" depends="algo,main,test" description="Compile all and run test"/>
+	
+</project>

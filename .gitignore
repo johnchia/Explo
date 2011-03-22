@@ -1,0 +1,8 @@
+/.classpath
+/.project
+/bin/
+/logs/
+/doc/
+/build/
+/lib/ClickPredictor.jar
+/cp.ser
