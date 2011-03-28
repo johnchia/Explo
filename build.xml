@@ -44,7 +44,10 @@
 			</classpath>
 		</javac>
 		<!-- Put everything in ${buildAlgo} into the ClickPredictor.jar file -->
-		<jar jarfile="${lib}/ClickPredictor.jar" basedir="${buildAlgo}"/>
+        <jar jarfile="${lib}/ClickPredictor.jar" basedir="${buildAlgo}">
+<zipfileset includes="**/*.class" src="${lib}/ejml-0.16.jar"/>
+</jar>
+
 	</target>
 	
 	<target name="eval" depends="init" description="Compile the evaluation code">
